@@ -1,0 +1,50 @@
+# Compiled object files
+*.o
+*.obj
+*.lo
+*.la
+*.al
+
+# Compiled Dynamic libraries
+*.dll
+*.dylib
+*.so
+
+# Executable files
+*.exe
+*.out
+*.app
+
+# Debug files
+*.dSYM/
+*.stackdump
+
+# Generated files
+*.gen.cpp
+*.gen.h
+
+# CMake build directory
+/build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Other build directories
+/bin/
+/lib/
+/lib64/
+/dist/
+/release/
+/Debug/
+/Release/
+
+# IDE specific files
+.idea/
+.vscode/
+*.code-workspace
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
