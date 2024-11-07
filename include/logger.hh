@@ -16,7 +16,6 @@
 
 #ifdef __cplusplus
 #include <stdexcept>
-#include <string>
 #endif
 
 #define TIME_BUFFER_SIZE 30
@@ -41,7 +40,7 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 #define __SHORT_FILE__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #endif
 
-#ifdef LOG_LIBRARY_PRETTY_FUNCTION
+#ifdef __PRETTY_FUNCTION__
 #define FUNC_NAME __PRETTY_FUNCTION__
 #else
 #define FUNC_NAME __func__
@@ -138,24 +137,6 @@ static inline void log_message(const char *color, const char *fmt, ...) {
 #define LOGWARN(fmt, ...) ___LOG___(COLOR_YELLOW, fmt, "WARN", __SHORT_FILE__, ##__VA_ARGS__)
 #define LOGERROR(fmt, ...) ___LOG___(COLOR_RED, fmt, "ERROR", __SHORT_FILE__, ##__VA_ARGS__)
 
-#if defined(LOG_LIBRARY_LOG_LEVEL_ERROR)
-#undef LOGDEBUG
-#undef LOGINFO
-#undef LOGWARN
-#define LOGDEBUG(fmt, ...) ((void) 0)
-#define LOGINFO(fmt, ...) ((void) 0)
-#define LOGWARN(fmt, ...) ((void) 0)
-#elif defined(LOG_LIBRARY_LOG_LEVEL_WARN)
-#undef LOGDEBUG
-#undef LOGINFO
-#define LOGDEBUG(fmt, ...) ((void) 0)
-#define LOGINFO(fmt, ...) ((void) 0)
-#elif defined(LOG_LIBRARY_LOG_LEVEL_DEBUG)
-#undef LOGINFO
-#define LOGINFO(fmt, ...) ((void) 0)
-#elif defined(LOG_LIBRARY_LOG_LEVEL_INFO)
-#endif
-
 // Initialize mutex for Windows platform
 #if defined(_WIN32) || defined(_WIN64)
 static inline void initialize_logger() {
@@ -169,29 +150,26 @@ static inline void initialize_logger() {
 #endif
 
 #ifdef __cplusplus
+#include <stdexcept>
+#include <string>
 
-static inline std::string form_exception(const char *short_file, int line, const char *func_name, const char *fmt, ...) {
-  char time_log_library_buffer[TIME_BUFFER_SIZE];
-  format_current_time(time_log_library_buffer, TIME_BUFFER_SIZE);
-  std::string message = "[EXCEPTION]";
-  message += " ";
-  message += time_log_library_buffer;
-  message += " ";
-  message += "[";
-  message += short_file;
-  message += ":";
-  message += std::to_string(line);
-  message += "]";
-  message += " ";
-  message += "[";
-  message += func_name;
-  message += "]";
-  message += " ";
-  message += fmt;
-  return message;
-}
+#define EXCEPTION(msg) (std::string(__SHORT_FILE__) + ":" + std::to_string(__LINE__) + " " + FUNC_NAME + " " + msg)
 
-#define EXCEPTION(fmt, ...) (form_exception(__SHORT_FILE__, __LINE__, FUNC_NAME, fmt, ##__VA_ARGS__))
+#define throw_runtime_error(msg) throw std::runtime_error(EXCEPTION(msg))
+
+#define throw_invalid_argument(msg) throw std::invalid_argument(EXCEPTION(msg))
+
+#define ___LOGEXCEPTION___(color, level, fmt)                       \
+  do {                                                              \
+    char time_log_library_buffer[TIME_BUFFER_SIZE];                 \
+    format_current_time(time_log_library_buffer, TIME_BUFFER_SIZE); \
+    log_message(color, "%s [%s] %s %s\n",                           \
+                time_log_library_buffer, level, fmt);               \
+  } while (0)
+
+#define LOGERROREXCEPTION(what) ___LOGEXCEPTION___(COLOR_BLUE, "DEBUG", what)
+#define LOGDEBUGEXCEPTION(what) ___LOGEXCEPTION___(COLOR_RED, "ERROR", what)
+
 
 #endif
 
