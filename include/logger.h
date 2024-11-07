@@ -19,7 +19,7 @@
 #include <string>
 #endif
 
-#define TIME_BUFFER_SIZE 30
+#define LOG_LIBRFARY_TIME_BUFFER_SIZE 30
 
 // Console colors
 #define COLOR_RESET "\033[0m"
@@ -30,7 +30,7 @@
 
 // Define a mutex for thread safety
 #if defined(_WIN32) || defined(_WIN64)
-static HANDLE mutex = NULL;
+static HANDLE mutex = CreateMutex(NULL, FALSE, NULL);
 #define LOCK() WaitForSingleObject(mutex, INFINITE)
 #define UNLOCK() ReleaseMutex(mutex)
 #define __SHORT_FILE__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
@@ -48,22 +48,22 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
 // Static log file pointer, defaults to stderr
-static FILE *log_file = NULL;
+static FILE *log_library_log_file = NULL;
 
 // Sets the log file. If not set, logs default to stderr.
-static inline void set_log_file(const char *file_path) {
+static inline void log_library_set_log_file(const char *file_path) {
   LOCK();
-  if (log_file && log_file != stderr) {
-    fclose(log_file);
+  if (log_library_log_file && log_library_log_file != stderr) {
+    fclose(log_library_log_file);
   }
-  log_file = fopen(file_path, "a");
-  if (!log_file) {
-    log_file = stderr;
+  log_library_log_file = fopen(file_path, "a");
+  if (!log_library_log_file) {
+    log_library_log_file = stderr;
   }
   UNLOCK();
 }
 
-void format_current_time(char *buffer, size_t buffer_size) {
+void log_library_format_current_time(char *buffer, size_t buffer_size) {
   struct timespec ts;
   struct tm tm_info;
 
@@ -102,12 +102,12 @@ void format_current_time(char *buffer, size_t buffer_size) {
 }
 
 // Function to print log message
-static inline void log_message(const char *color, const char *fmt, ...) {
+static inline void log_library_log_message(const char *color, const char *fmt, ...) {
   LOCK();
   va_list argptr;
   va_start(argptr, fmt);
 
-  FILE *output = log_file ? log_file : stderr;
+  FILE *output = log_library_log_file ? log_library_log_file : stderr;
   int is_terminal = output == stderr;
 
   if (is_terminal) {
@@ -124,13 +124,13 @@ static inline void log_message(const char *color, const char *fmt, ...) {
   UNLOCK();
 }
 
-#define ___LOG___(color, fmt, level, path, ...)                            \
-  do {                                                                     \
-    char time_log_library_buffer[TIME_BUFFER_SIZE];                        \
-    format_current_time(time_log_library_buffer, TIME_BUFFER_SIZE);        \
-    log_message(color, "%s [%s] [%s:%d] [%s] " fmt "\n",                   \
-                time_log_library_buffer, level, path, __LINE__, FUNC_NAME, \
-                ##__VA_ARGS__);                                            \
+#define ___LOG___(color, fmt, level, path, ...)                                              \
+  do {                                                                                       \
+    char log_library_time_buffer[LOG_LIBRFARY_TIME_BUFFER_SIZE];                             \
+    log_library_format_current_time(log_library_time_buffer, LOG_LIBRFARY_TIME_BUFFER_SIZE); \
+    log_library_log_message(color, "%s [%s] [%s:%d] [%s] " fmt "\n",                         \
+                            log_library_time_buffer, level, path, __LINE__, FUNC_NAME,       \
+                            ##__VA_ARGS__);                                                  \
   } while (0)
 
 #define LOGDEBUG(fmt, ...) ___LOG___(COLOR_BLUE, fmt, "DEBUG", __SHORT_FILE__, ##__VA_ARGS__)
@@ -156,26 +156,14 @@ static inline void log_message(const char *color, const char *fmt, ...) {
 #elif defined(LOG_LIBRARY_LOG_LEVEL_INFO)
 #endif
 
-// Initialize mutex for Windows platform
-#if defined(_WIN32) || defined(_WIN64)
-static inline void initialize_logger() {
-  if (!mutex) {
-    mutex = CreateMutex(NULL, FALSE, NULL);
-  }
-}
-#define INIT_LOGGER() initialize_logger()
-#else
-#define INIT_LOGGER() ((void) 0)
-#endif
-
 #ifdef __cplusplus
 
-static inline std::string form_exception(const char *short_file, int line, const char *func_name, const char *fmt, ...) {
-  char time_log_library_buffer[TIME_BUFFER_SIZE];
-  format_current_time(time_log_library_buffer, TIME_BUFFER_SIZE);
+static inline std::string log_library_form_exception(const char *short_file, int line, const char *func_name, const char *fmt, ...) {
+  char log_library_time_buffer[LOG_LIBRFARY_TIME_BUFFER_SIZE];
+  log_library_format_current_time(log_library_time_buffer, LOG_LIBRFARY_TIME_BUFFER_SIZE);
   std::string message = "[EXCEPTION]";
   message += " ";
-  message += time_log_library_buffer;
+  message += log_library_time_buffer;
   message += " ";
   message += "[";
   message += short_file;
@@ -191,7 +179,7 @@ static inline std::string form_exception(const char *short_file, int line, const
   return message;
 }
 
-#define EXCEPTION(fmt, ...) (form_exception(__SHORT_FILE__, __LINE__, FUNC_NAME, fmt, ##__VA_ARGS__))
+#define EXCEPTION(fmt, ...) (log_library_form_exception(__SHORT_FILE__, __LINE__, FUNC_NAME, fmt, ##__VA_ARGS__))
 
 #endif
 
