@@ -5,7 +5,8 @@ set(CMAKE_C_STANDARD 98)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_compile_definitions(LOG_LIBRARY_PRETTY_FUNCTION)
-add_compile_definitions(LOG_LIBRARY_LOG_LEVEL_INFO)
+add_compile_definitions(LOG_LIBRARY_LOG_LEVEL_ERROR)
+add_compile_definitions(LOG_LIBRARY_LOG_SIMPLE)
 
 add_executable(
     ${PROJECT_NAME}

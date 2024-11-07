@@ -14,7 +14,7 @@ public:
 };
 
 int main() {
-  log_library_set_log_file("log.txt");
+  // log_library_set_log_file("log.txt");
   LOGDEBUG("This is a debug message");
   try {
     Test t;

@@ -33,19 +33,21 @@
 static HANDLE mutex = CreateMutex(NULL, FALSE, NULL);
 #define LOCK() WaitForSingleObject(mutex, INFINITE)
 #define UNLOCK() ReleaseMutex(mutex)
-#define __SHORT_FILE__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
+#define LOG_LIBRARY_SHORT_FILE (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 #else
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 #define LOCK() pthread_mutex_lock(&mutex)
 #define UNLOCK() pthread_mutex_unlock(&mutex)
-#define __SHORT_FILE__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+#define LOG_LIBRARY_SHORT_FILE (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #endif
 
 #ifdef LOG_LIBRARY_PRETTY_FUNCTION
-#define FUNC_NAME __PRETTY_FUNCTION__
+#define LOG_LIBRARY_FUNC_NAME __PRETTY_FUNCTION__
 #else
-#define FUNC_NAME __func__
+#define LOG_LIBRARY_FUNC_NAME __func__
 #endif
+
+#define LOG_LIBRARY_LINE __LINE__
 
 // Static log file pointer, defaults to stderr
 static FILE *log_library_log_file = NULL;
@@ -124,19 +126,29 @@ static inline void log_library_log_message(const char *color, const char *fmt, .
   UNLOCK();
 }
 
-#define ___LOG___(color, fmt, level, path, ...)                                              \
-  do {                                                                                       \
-    char log_library_time_buffer[LOG_LIBRFARY_TIME_BUFFER_SIZE];                             \
-    log_library_format_current_time(log_library_time_buffer, LOG_LIBRFARY_TIME_BUFFER_SIZE); \
-    log_library_log_message(color, "%s [%s] [%s:%d] [%s] " fmt "\n",                         \
-                            log_library_time_buffer, level, path, __LINE__, FUNC_NAME,       \
-                            ##__VA_ARGS__);                                                  \
+#define ___LOG___(color, fmt, level, path, ...)                                                            \
+  do {                                                                                                     \
+    char log_library_time_buffer[LOG_LIBRFARY_TIME_BUFFER_SIZE];                                           \
+    log_library_format_current_time(log_library_time_buffer, LOG_LIBRFARY_TIME_BUFFER_SIZE);               \
+    log_library_log_message(color, "%s [%s] [%s:%d] [%s] " fmt "\n",                                       \
+                            log_library_time_buffer, level, path, LOG_LIBRARY_LINE, LOG_LIBRARY_FUNC_NAME, \
+                            ##__VA_ARGS__);                                                                \
   } while (0)
 
-#define LOGDEBUG(fmt, ...) ___LOG___(COLOR_BLUE, fmt, "DEBUG", __SHORT_FILE__, ##__VA_ARGS__)
-#define LOGINFO(fmt, ...) ___LOG___(COLOR_GREEN, fmt, "INFO", __SHORT_FILE__, ##__VA_ARGS__)
-#define LOGWARN(fmt, ...) ___LOG___(COLOR_YELLOW, fmt, "WARN", __SHORT_FILE__, ##__VA_ARGS__)
-#define LOGERROR(fmt, ...) ___LOG___(COLOR_RED, fmt, "ERROR", __SHORT_FILE__, ##__VA_ARGS__)
+#ifdef LOG_LIBRARY_LOG_SIMPLE
+#undef ___LOG___
+#define ___LOG___(color, fmt, level, path, ...)                                                         \
+  do {                                                                                                  \
+    char log_library_time_buffer[LOG_LIBRFARY_TIME_BUFFER_SIZE];                                        \
+    log_library_format_current_time(log_library_time_buffer, LOG_LIBRFARY_TIME_BUFFER_SIZE);            \
+    log_library_log_message(color, "%s [%s] " fmt "\n", log_library_time_buffer, level, ##__VA_ARGS__); \
+  } while (0)
+#endif
+
+#define LOGDEBUG(fmt, ...) ___LOG___(COLOR_BLUE, fmt, "DEBUG", LOG_LIBRARY_SHORT_FILE, ##__VA_ARGS__)
+#define LOGINFO(fmt, ...) ___LOG___(COLOR_GREEN, fmt, "INFO", LOG_LIBRARY_SHORT_FILE, ##__VA_ARGS__)
+#define LOGWARN(fmt, ...) ___LOG___(COLOR_YELLOW, fmt, "WARN", LOG_LIBRARY_SHORT_FILE, ##__VA_ARGS__)
+#define LOGERROR(fmt, ...) ___LOG___(COLOR_RED, fmt, "ERROR", LOG_LIBRARY_SHORT_FILE, ##__VA_ARGS__)
 
 #if defined(LOG_LIBRARY_LOG_LEVEL_ERROR)
 #undef LOGDEBUG
@@ -158,13 +170,14 @@ static inline void log_library_log_message(const char *color, const char *fmt, .
 
 #ifdef __cplusplus
 
-static inline std::string log_library_form_exception(const char *short_file, int line, const char *func_name, const char *fmt, ...) {
+static inline std::string log_library_form_exception(const char *short_file, int line, const char *LOG_LIBRARY_func_name, const char *fmt, ...) {
   char log_library_time_buffer[LOG_LIBRFARY_TIME_BUFFER_SIZE];
   log_library_format_current_time(log_library_time_buffer, LOG_LIBRFARY_TIME_BUFFER_SIZE);
   std::string message = "[EXCEPTION]";
   message += " ";
   message += log_library_time_buffer;
   message += " ";
+#ifndef LOG_LIBRARY_LOG_SIMPLE
   message += "[";
   message += short_file;
   message += ":";
@@ -172,14 +185,15 @@ static inline std::string log_library_form_exception(const char *short_file, int
   message += "]";
   message += " ";
   message += "[";
-  message += func_name;
+  message += LOG_LIBRARY_func_name;
   message += "]";
   message += " ";
+#endif
   message += fmt;
   return message;
 }
 
-#define EXCEPTION(fmt, ...) (log_library_form_exception(__SHORT_FILE__, __LINE__, FUNC_NAME, fmt, ##__VA_ARGS__))
+#define EXCEPTION(fmt, ...) (log_library_form_exception(LOG_LIBRARY_SHORT_FILE, LOG_LIBRARY_LINE, LOG_LIBRARY_FUNC_NAME, fmt, ##__VA_ARGS__))
 
 #endif
 
