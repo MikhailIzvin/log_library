@@ -43,6 +43,15 @@ Set the log file path using `log_library_set_log_file`:
 log_library_set_log_file("log.txt");
 ```
 
+When you log in file log library remember size of log file and you can write wrapper that track
+size of flushed logs in file and swap files when it's needed. 
+
+
+```cpp
+// Return size of flushed logs
+log_library_get_log_size();
+```
+
 ### Logging Messages
 
 Use the provided macros to log messages at different levels:
