@@ -142,6 +142,8 @@ static inline void log_library_log_message(const char *color, const char *fmt, .
   UNLOCK();
 }
 
+#ifndef LOG_LIBRARY_TAG_SUPPORT
+
 #define ___LOG___(color, fmt, level, path, ...)                                                            \
   do {                                                                                                     \
     char log_library_time_buffer[LOG_LIBRFARY_TIME_BUFFER_SIZE];                                           \
@@ -165,6 +167,34 @@ static inline void log_library_log_message(const char *color, const char *fmt, .
 #define LOGINFO(fmt, ...) ___LOG___(COLOR_GREEN, fmt, "INFO", LOG_LIBRARY_SHORT_FILE, ##__VA_ARGS__)
 #define LOGWARN(fmt, ...) ___LOG___(COLOR_YELLOW, fmt, "WARN", LOG_LIBRARY_SHORT_FILE, ##__VA_ARGS__)
 #define LOGERROR(fmt, ...) ___LOG___(COLOR_RED, fmt, "ERROR", LOG_LIBRARY_SHORT_FILE, ##__VA_ARGS__)
+
+#else
+
+#define ___LOG___(color, fmt, tag, level, path, ...)                                                            \
+  do {                                                                                                          \
+    char log_library_time_buffer[LOG_LIBRFARY_TIME_BUFFER_SIZE];                                                \
+    log_library_format_current_time(log_library_time_buffer, LOG_LIBRFARY_TIME_BUFFER_SIZE);                    \
+    log_library_log_message(color, "%s [%s] [%s] [%s:%d] [%s] " fmt "\n",                                       \
+                            log_library_time_buffer, tag, level, path, LOG_LIBRARY_LINE, LOG_LIBRARY_FUNC_NAME, \
+                            ##__VA_ARGS__);                                                                     \
+  } while (0)
+
+#ifdef LOG_LIBRARY_LOG_SIMPLE
+#undef ___LOG___
+#define ___LOG___(color, fmt, tag, level, path, ...)                                                              \
+  do {                                                                                                            \
+    char log_library_time_buffer[LOG_LIBRFARY_TIME_BUFFER_SIZE];                                                  \
+    log_library_format_current_time(log_library_time_buffer, LOG_LIBRFARY_TIME_BUFFER_SIZE);                      \
+    log_library_log_message(color, "%s [%s] [%s] " fmt "\n", log_library_time_buffer, tag, level, ##__VA_ARGS__); \
+  } while (0)
+#endif
+
+#define LOGDEBUG(tag, fmt, ...) ___LOG___(COLOR_BLUE, fmt, tag, "DEBUG", LOG_LIBRARY_SHORT_FILE, ##__VA_ARGS__)
+#define LOGINFO(tag, fmt, ...) ___LOG___(COLOR_GREEN, fmt, tag, "INFO", LOG_LIBRARY_SHORT_FILE, ##__VA_ARGS__)
+#define LOGWARN(tag, fmt, ...) ___LOG___(COLOR_YELLOW, fmt, tag, "WARN", LOG_LIBRARY_SHORT_FILE, ##__VA_ARGS__)
+#define LOGERROR(tag, fmt, ...) ___LOG___(COLOR_RED, fmt, tag, "ERROR", LOG_LIBRARY_SHORT_FILE, ##__VA_ARGS__)
+
+#endif
 
 #if defined(LOG_LIBRARY_LOG_LEVEL_ERROR)
 #undef LOGDEBUG
