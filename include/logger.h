@@ -47,13 +47,13 @@
 // Define a mutex for thread safety
 #if defined(_WIN32) || defined(_WIN64)
 static HANDLE log_library_mutex = CreateMutex(NULL, FALSE, NULL);
-#define LOCK() WaitForSingleObject(log_library_mutex, INFINITE)
-#define UNLOCK() ReleaseMutex(log_library_mutex)
+#define LOG_LIBRARY_LOCK() WaitForSingleObject(log_library_mutex, INFINITE)
+#define LOG_LIBRARY_UNLOCK() ReleaseMutex(log_library_mutex)
 #define LOG_LIBRARY_SHORT_FILE (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 #else
 static pthread_mutex_t log_library_mutex = PTHREAD_MUTEX_INITIALIZER;
-#define LOCK() pthread_mutex_lock(&log_library_mutex)
-#define UNLOCK() pthread_mutex_unlock(&log_library_mutex)
+#define LOG_LIBRARY_LOCK() pthread_mutex_lock(&log_library_mutex)
+#define LOG_LIBRARY_UNLOCK() pthread_mutex_unlock(&log_library_mutex)
 #define LOG_LIBRARY_SHORT_FILE (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #endif
 
@@ -68,10 +68,14 @@ static pthread_mutex_t log_library_mutex = PTHREAD_MUTEX_INITIALIZER;
 // Static log file pointer, defaults to stderr
 static FILE *log_library_log_file = NULL;
 static unsigned int log_library_log_size = 0;
+static unsigned int log_library_log_max_size = 0;
+typedef void (*log_library_callback)(void *userdata);
+static log_library_callback log_library_max_file_size_callback = NULL;
+static void *log_library_userdata = NULL;
 
 // Sets the log file. If not set, logs default to stderr.
 static inline void log_library_set_log_file(const char *file_path) {
-  LOCK();
+  LOG_LIBRARY_LOCK();
   if (log_library_log_file && log_library_log_file != stderr) {
     fclose(log_library_log_file);
     log_library_log_size = 0;
@@ -84,14 +88,37 @@ static inline void log_library_set_log_file(const char *file_path) {
     log_library_log_size = ftell(log_library_log_file);
     fseek(log_library_log_file, 0, SEEK_SET);
   }
-  UNLOCK();
+  LOG_LIBRARY_UNLOCK();
+}
+
+static inline void log_library_set_log_max_size(unsigned int max_size) {
+  LOG_LIBRARY_LOCK();
+  log_library_log_max_size = max_size;
+  LOG_LIBRARY_UNLOCK();
 }
 
 static inline unsigned int log_library_get_log_size() {
-  LOCK();
+  LOG_LIBRARY_LOCK();
   unsigned int size = log_library_log_size;
-  UNLOCK();
+  LOG_LIBRARY_UNLOCK();
   return size;
+}
+
+static inline void log_library_close_log_file() {
+  LOG_LIBRARY_LOCK();
+  if (log_library_log_file && log_library_log_file != stderr) {
+    fclose(log_library_log_file);
+    log_library_log_file = NULL;
+    log_library_log_size = 0;
+  }
+  LOG_LIBRARY_UNLOCK();
+}
+
+static inline void log_library_set_max_file_size_callback(log_library_callback callback, void *userdata) {
+  LOG_LIBRARY_LOCK();
+  log_library_max_file_size_callback = callback;
+  log_library_userdata = userdata;
+  LOG_LIBRARY_UNLOCK();
 }
 
 static inline void log_library_format_current_time(char *buffer, size_t buffer_size) {
@@ -134,7 +161,7 @@ static inline void log_library_format_current_time(char *buffer, size_t buffer_s
 
 // Function to print log message
 static inline void log_library_log_message(const char *color, const char *fmt, ...) {
-  LOCK();
+  LOG_LIBRARY_LOCK();
   va_list argptr;
   va_start(argptr, fmt);
 
@@ -148,6 +175,12 @@ static inline void log_library_log_message(const char *color, const char *fmt, .
   } else {
     vfprintf(output, fmt, argptr);
     log_library_log_size = ftell(output);
+    if (log_library_log_max_size != 0 && log_library_log_size >= log_library_log_max_size) {
+      if (log_library_max_file_size_callback) {
+        log_library_max_file_size_callback(log_library_userdata);
+        LOG_LIBRARY_LOCK();
+      }
+    }
   }
   va_end(argptr);
 
@@ -155,18 +188,18 @@ static inline void log_library_log_message(const char *color, const char *fmt, .
   fflush(output);
 #endif
 
-  UNLOCK();
+  LOG_LIBRARY_UNLOCK();
 }
 
 static inline void log_library_flush_log() {
-  LOCK();
+  LOG_LIBRARY_LOCK();
   FILE *output = log_library_log_file ? log_library_log_file : stderr;
   fflush(output);
   int is_terminal = output == stderr;
   if (!is_terminal) {
     log_library_log_size = ftell(output);
   }
-  UNLOCK();
+  LOG_LIBRARY_UNLOCK();
 }
 
 #ifndef LOG_LIBRARY_TAG_SUPPORT
