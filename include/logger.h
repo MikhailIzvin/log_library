@@ -17,27 +17,43 @@
 #ifdef __cplusplus
 #include <stdexcept>
 #include <string>
+#if __cplusplus < 201103L
+#include <sstream>
+#define SSTR(x) static_cast<std::ostringstream &>(         \
+                  (std::ostringstream() << std::dec << x)) \
+                  .str()
+#else
+#define SSTR(x) std::to_string(x)
+#endif
 #endif
 
 #define LOG_LIBRFARY_TIME_BUFFER_SIZE 30
 
+#ifndef LOG_LIBRARY_DISABLE_COLORS
 // Console colors
 #define COLOR_RESET "\033[0m"
 #define COLOR_BLUE "\033[34m"
 #define COLOR_GREEN "\033[32m"
 #define COLOR_YELLOW "\033[33m"
 #define COLOR_RED "\033[31m"
+#else
+#define COLOR_RESET ""
+#define COLOR_BLUE ""
+#define COLOR_GREEN ""
+#define COLOR_YELLOW ""
+#define COLOR_RED ""
+#endif
 
 // Define a mutex for thread safety
 #if defined(_WIN32) || defined(_WIN64)
-static HANDLE mutex = CreateMutex(NULL, FALSE, NULL);
-#define LOCK() WaitForSingleObject(mutex, INFINITE)
-#define UNLOCK() ReleaseMutex(mutex)
+static HANDLE log_library_mutex = CreateMutex(NULL, FALSE, NULL);
+#define LOCK() WaitForSingleObject(log_library_mutex, INFINITE)
+#define UNLOCK() ReleaseMutex(log_library_mutex)
 #define LOG_LIBRARY_SHORT_FILE (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 #else
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-#define LOCK() pthread_mutex_lock(&mutex)
-#define UNLOCK() pthread_mutex_unlock(&mutex)
+static pthread_mutex_t log_library_mutex = PTHREAD_MUTEX_INITIALIZER;
+#define LOCK() pthread_mutex_lock(&log_library_mutex)
+#define UNLOCK() pthread_mutex_unlock(&log_library_mutex)
 #define LOG_LIBRARY_SHORT_FILE (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #endif
 
@@ -65,7 +81,7 @@ static inline void log_library_set_log_file(const char *file_path) {
   UNLOCK();
 }
 
-void log_library_format_current_time(char *buffer, size_t buffer_size) {
+static inline void log_library_format_current_time(char *buffer, size_t buffer_size) {
   struct timespec ts;
   struct tm tm_info;
 
@@ -181,7 +197,7 @@ static inline std::string log_library_form_exception(const char *short_file, int
   message += "[";
   message += short_file;
   message += ":";
-  message += std::to_string(line);
+  message += SSTR(line);
   message += "]";
   message += " ";
   message += "[";
