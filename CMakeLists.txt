@@ -1,27 +1,44 @@
 cmake_minimum_required(VERSION 3.7)
-project("executable" VERSION 1.0.0)
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_C_STANDARD 98)
+project("logger" VERSION 1.0.0)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_compile_definitions(LOG_LIBRARY_PRETTY_FUNCTION)
-add_compile_definitions(LOG_LIBRARY_LOG_LEVEL_ERROR)
-add_compile_definitions(LOG_LIBRARY_LOG_SIMPLE)
 
-add_executable(
-    ${PROJECT_NAME}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cc
-)
+option(LOG_LIBRARY_PRETTY_FUNCTION "Enable pretty function names in log output" OFF)
+option(LOG_LIBRARY_DISABLE_COLORS "Disable colored log output" OFF)
+option(LOG_LIBRARY_LOG_LEVEL_ERROR "Set log level to ERROR" OFF)
+option(LOG_LIBRARY_LOG_LEVEL_DEBUG "Set log level to DEBUG" OFF)
+option(LOG_LIBRARY_LOG_LEVEL_WARN "Set log level to WARN" OFF)
+option(LOG_LIBRARY_LOG_LEVEL_INFO "Set log level to INFO" OFF)
+option(LOG_LIBRARY_LOG_SIMPLE "Enable simple log output" OFF)
 
-target_link_libraries(
-    ${PROJECT_NAME}
-    PRIVATE
-)
+if(LOG_LIBRARY_PRETTY_FUNCTION)
+  add_compile_definitions(LOG_LIBRARY_PRETTY_FUNCTION)
+endif()
 
-target_include_directories(
-    ${PROJECT_NAME}
-    PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
+if(LOG_LIBRARY_DISABLE_COLORS)
+  add_compile_definitions(LOG_LIBRARY_DISABLE_COLORS)
+endif()
 
-# add_dependencies(${PROJECT_NAME})
+if(LOG_LIBRARY_LOG_LEVEL_ERROR)
+  add_compile_definitions(LOG_LIBRARY_LOG_LEVEL_ERROR)
+endif()
+
+if(LOG_LIBRARY_LOG_LEVEL_DEBUG)
+  add_compile_definitions(LOG_LIBRARY_LOG_LEVEL_DEBUG)
+endif()
+
+if(LOG_LIBRARY_LOG_LEVEL_WARN)
+  add_compile_definitions(LOG_LIBRARY_LOG_LEVEL_WARN)
+endif()
+
+if(LOG_LIBRARY_LOG_LEVEL_INFO)
+  add_compile_definitions(LOG_LIBRARY_LOG_LEVEL_INFO)
+endif()
+
+if(LOG_LIBRARY_LOG_SIMPLE)
+  add_compile_definitions(LOG_LIBRARY_LOG_SIMPLE)
+endif()
+
+include_directories(include)
+
+add_subdirectory(examples)

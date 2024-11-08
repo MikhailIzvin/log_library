@@ -1,0 +1,5 @@
+add_subdirectory(cpp98)
+add_subdirectory(cpp11)
+add_subdirectory(c90)
+add_subdirectory(cpp_exception)
+add_subdirectory(log_to_file)
