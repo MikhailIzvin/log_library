@@ -67,18 +67,31 @@ static pthread_mutex_t log_library_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // Static log file pointer, defaults to stderr
 static FILE *log_library_log_file = NULL;
+static unsigned int log_library_log_size = 0;
 
 // Sets the log file. If not set, logs default to stderr.
 static inline void log_library_set_log_file(const char *file_path) {
   LOCK();
   if (log_library_log_file && log_library_log_file != stderr) {
     fclose(log_library_log_file);
+    log_library_log_size = 0;
   }
   log_library_log_file = fopen(file_path, "a");
   if (!log_library_log_file) {
     log_library_log_file = stderr;
+  } else {
+    fseek(log_library_log_file, 0, SEEK_END);
+    log_library_log_size = ftell(log_library_log_file);
+    fseek(log_library_log_file, 0, SEEK_SET);
   }
   UNLOCK();
+}
+
+static inline unsigned int log_library_get_log_size() {
+  LOCK();
+  unsigned int size = log_library_log_size;
+  UNLOCK();
+  return size;
 }
 
 static inline void log_library_format_current_time(char *buffer, size_t buffer_size) {
@@ -134,6 +147,7 @@ static inline void log_library_log_message(const char *color, const char *fmt, .
     fprintf(output, "%s", COLOR_RESET);
   } else {
     vfprintf(output, fmt, argptr);
+    log_library_log_size = ftell(output);
   }
   va_end(argptr);
 
@@ -148,6 +162,10 @@ static inline void log_library_flush_log() {
   LOCK();
   FILE *output = log_library_log_file ? log_library_log_file : stderr;
   fflush(output);
+  int is_terminal = output == stderr;
+  if (!is_terminal) {
+    log_library_log_size = ftell(output);
+  }
   UNLOCK();
 }
 
