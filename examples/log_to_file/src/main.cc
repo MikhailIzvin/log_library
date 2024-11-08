@@ -1,3 +1,4 @@
+#include "config.h"
 #include "logger.h"
 #include <chrono>
 #include <iostream>
@@ -8,7 +9,7 @@
 #define MAX_THREADS 10
 
 int main() {
-  log_library_set_log_file("log.txt");
+  log_library_set_log_file(LOG_FILE);
   auto start = std::chrono::high_resolution_clock::now();
   std::vector<std::thread> threads;
   for (int i = 0; i < MAX_THREADS; i++) {
