@@ -2,5 +2,6 @@
 #define CONFIG_H_IN
 
 #define LOG_FILE "@LOG_FILE@"
+#define LOG_DIR "@LOG_DIR@"
 
 #endif// CONFIG_H_IN
