@@ -137,8 +137,17 @@ static inline void log_library_log_message(const char *color, const char *fmt, .
   }
   va_end(argptr);
 
+#ifndef LOG_LIBRARY_DISABLE_FLUSH
   fflush(output);
+#endif
 
+  UNLOCK();
+}
+
+static inline void log_library_flush_log() {
+  LOCK();
+  FILE *output = log_library_log_file ? log_library_log_file : stderr;
+  fflush(output);
   UNLOCK();
 }
 
