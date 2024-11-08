@@ -10,7 +10,7 @@ option(LOG_LEVEL_DEBUG "Set log level to DEBUG" OFF)
 option(LOG_LEVEL_WARN "Set log level to WARN" OFF)
 option(LOG_LEVEL_INFO "Set log level to INFO" OFF)
 option(LOG_SIMPLE "Enable simple log output" OFF)
-option(CUSTOM_LOG_FILE "Set custom log file" ON)
+option(CUSTOM_LOG_FILE "Set custom log file" OFF)
 
 if (CUSTOM_LOG_FILE)
   set(LOG_FILE "${CMAKE_CURRENT_SOURCE_DIR}/log.txt")
@@ -53,8 +53,12 @@ if(LOG_SIMPLE)
   add_compile_definitions(LOG_LIBRARY_LOG_SIMPLE)
 endif()
 
+set(EXAMPLE_DIR examples)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+
 configure_file (config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h @ONLY)
+
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(include)
 
-add_subdirectory(examples)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/${EXAMPLE_DIR})
