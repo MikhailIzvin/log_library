@@ -52,6 +52,29 @@ size of flushed logs in file and swap files when it's needed.
 log_library_get_log_size();
 ```
 
+Or you can you use callback
+
+```cpp
+// Set max size before use
+log_library_set_log_max_size(unsigned int max_size);
+log_library_set_max_file_size_callback(log_library_callback callback, void *userdata);
+```
+
+### Important if you are using log in file
+
+Before use any log library functions in callback you should
+release mutex via `LOG_LIBRARY_UNLOCK()`
+
+```cpp
+void maxFileSizeCallback(void *userdata) {
+  // You should unlock before using library functions
+  LOG_LIBRARY_UNLOCK();
+  log_library_set_log_file(logFile);
+}
+```
+
+Simple example you can find in file_size_tracking
+
 ### Logging Messages
 
 Use the provided macros to log messages at different levels:
