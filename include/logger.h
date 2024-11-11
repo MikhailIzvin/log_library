@@ -73,9 +73,34 @@ typedef void (*log_library_callback)(void *userdata);
 static log_library_callback log_library_max_file_size_callback = NULL;
 static void *log_library_userdata = NULL;
 
+// Safe functions
+static inline void log_library_set_log_file(const char *file_path);
+static inline void log_library_set_log_max_size(unsigned int max_size);
+static inline unsigned int log_library_get_log_size();
+static inline void log_library_close_log_file();
+static inline void log_library_set_max_file_size_callback(log_library_callback callback, void *userdata);
+static inline void log_library_flush_log();
+
+// Unlocked functions
+static inline void log_library_set_log_file_unlocked(const char *file_path);
+static inline void log_library_set_log_max_size_unlocked(unsigned int max_size);
+static inline unsigned int log_library_get_log_size_unlocked();
+static inline void log_library_close_log_file_unlocked();
+static inline void log_library_set_max_file_size_callback_unlocked(log_library_callback callback, void *userdata);
+static inline void log_library_flush_log_unlocked();
+
+// Private functions
+static inline void log_library_format_current_time(char *buffer, size_t buffer_size);
+static inline void log_library_log_message(const char *color, const char *fmt, ...);
+
 // Sets the log file. If not set, logs default to stderr.
 static inline void log_library_set_log_file(const char *file_path) {
   LOG_LIBRARY_LOCK();
+  log_library_set_log_file_unlocked(file_path);
+  LOG_LIBRARY_UNLOCK();
+}
+
+inline void log_library_set_log_file_unlocked(const char *file_path) {
   if (log_library_log_file && log_library_log_file != stderr) {
     fclose(log_library_log_file);
     log_library_log_size = 0;
@@ -88,37 +113,53 @@ static inline void log_library_set_log_file(const char *file_path) {
     log_library_log_size = ftell(log_library_log_file);
     fseek(log_library_log_file, 0, SEEK_SET);
   }
-  LOG_LIBRARY_UNLOCK();
 }
 
 static inline void log_library_set_log_max_size(unsigned int max_size) {
   LOG_LIBRARY_LOCK();
-  log_library_log_max_size = max_size;
+  log_library_set_log_max_size_unlocked(max_size);
   LOG_LIBRARY_UNLOCK();
 }
 
+inline void log_library_set_log_max_size_unlocked(unsigned int max_size) {
+  log_library_log_max_size = max_size;
+}
+
+
 static inline unsigned int log_library_get_log_size() {
   LOG_LIBRARY_LOCK();
-  unsigned int size = log_library_log_size;
+  unsigned int size = log_library_get_log_size_unlocked();
   LOG_LIBRARY_UNLOCK();
   return size;
 }
 
+inline unsigned int log_library_get_log_size_unlocked() {
+  return log_library_log_size;
+}
+
 static inline void log_library_close_log_file() {
   LOG_LIBRARY_LOCK();
+  log_library_close_log_file_unlocked();
+  LOG_LIBRARY_UNLOCK();
+}
+
+inline void log_library_close_log_file_unlocked() {
   if (log_library_log_file && log_library_log_file != stderr) {
     fclose(log_library_log_file);
     log_library_log_file = NULL;
     log_library_log_size = 0;
   }
-  LOG_LIBRARY_UNLOCK();
 }
 
 static inline void log_library_set_max_file_size_callback(log_library_callback callback, void *userdata) {
   LOG_LIBRARY_LOCK();
+  log_library_set_max_file_size_callback_unlocked(callback, userdata);
+  LOG_LIBRARY_UNLOCK();
+}
+
+static inline void log_library_set_max_file_size_callback_unlocked(log_library_callback callback, void *userdata) {
   log_library_max_file_size_callback = callback;
   log_library_userdata = userdata;
-  LOG_LIBRARY_UNLOCK();
 }
 
 static inline void log_library_format_current_time(char *buffer, size_t buffer_size) {
@@ -178,7 +219,6 @@ static inline void log_library_log_message(const char *color, const char *fmt, .
     if (log_library_log_max_size != 0 && log_library_log_size >= log_library_log_max_size) {
       if (log_library_max_file_size_callback) {
         log_library_max_file_size_callback(log_library_userdata);
-        LOG_LIBRARY_LOCK();
       }
     }
   }
@@ -193,14 +233,19 @@ static inline void log_library_log_message(const char *color, const char *fmt, .
 
 static inline void log_library_flush_log() {
   LOG_LIBRARY_LOCK();
+  log_library_flush_log_unlocked();
+  LOG_LIBRARY_UNLOCK();
+}
+
+inline void log_library_flush_log_unlocked() {
   FILE *output = log_library_log_file ? log_library_log_file : stderr;
   fflush(output);
   int is_terminal = output == stderr;
   if (!is_terminal) {
     log_library_log_size = ftell(output);
   }
-  LOG_LIBRARY_UNLOCK();
 }
+
 
 #ifndef LOG_LIBRARY_TAG_SUPPORT
 
