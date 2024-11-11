@@ -19,18 +19,18 @@
 #include <string>
 #if __cplusplus < 201103L
 #include <sstream>
-#define SSTR(x) static_cast<std::ostringstream &>(         \
-                  (std::ostringstream() << std::dec << x)) \
-                  .str()
-#else
-#define SSTR(x) std::to_string(x)
 #endif
 #endif
 
 #define LOG_LIBRFARY_TIME_BUFFER_SIZE 30
+#ifdef LOG_LIBRARY_PRETTY_FUNCTION
+#define LOG_LIBRARY_FUNC_NAME __PRETTY_FUNCTION__
+#else
+#define LOG_LIBRARY_FUNC_NAME __func__
+#endif
+#define LOG_LIBRARY_LINE __LINE__
 
 #ifndef LOG_LIBRARY_DISABLE_COLORS
-// Console colors
 #define COLOR_RESET "\033[0m"
 #define COLOR_BLUE "\033[34m"
 #define COLOR_GREEN "\033[32m"
@@ -57,18 +57,12 @@ static pthread_mutex_t log_library_mutex = PTHREAD_MUTEX_INITIALIZER;
 #define LOG_LIBRARY_SHORT_FILE (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #endif
 
-#ifdef LOG_LIBRARY_PRETTY_FUNCTION
-#define LOG_LIBRARY_FUNC_NAME __PRETTY_FUNCTION__
-#else
-#define LOG_LIBRARY_FUNC_NAME __func__
-#endif
-
-#define LOG_LIBRARY_LINE __LINE__
 
 // Static log file pointer, defaults to stderr
 static FILE *log_library_log_file = NULL;
 static unsigned int log_library_log_size = 0;
 static unsigned int log_library_log_max_size = 0;
+
 typedef void (*log_library_callback)(void *userdata);
 static log_library_callback log_library_max_file_size_callback = NULL;
 static void *log_library_userdata = NULL;
@@ -100,7 +94,7 @@ static inline void log_library_set_log_file(const char *file_path) {
   LOG_LIBRARY_UNLOCK();
 }
 
-inline void log_library_set_log_file_unlocked(const char *file_path) {
+static inline void log_library_set_log_file_unlocked(const char *file_path) {
   if (log_library_log_file && log_library_log_file != stderr) {
     fclose(log_library_log_file);
     log_library_log_size = 0;
@@ -121,7 +115,7 @@ static inline void log_library_set_log_max_size(unsigned int max_size) {
   LOG_LIBRARY_UNLOCK();
 }
 
-inline void log_library_set_log_max_size_unlocked(unsigned int max_size) {
+static inline void log_library_set_log_max_size_unlocked(unsigned int max_size) {
   log_library_log_max_size = max_size;
 }
 
@@ -133,7 +127,7 @@ static inline unsigned int log_library_get_log_size() {
   return size;
 }
 
-inline unsigned int log_library_get_log_size_unlocked() {
+static inline unsigned int log_library_get_log_size_unlocked() {
   return log_library_log_size;
 }
 
@@ -143,7 +137,7 @@ static inline void log_library_close_log_file() {
   LOG_LIBRARY_UNLOCK();
 }
 
-inline void log_library_close_log_file_unlocked() {
+static inline void log_library_close_log_file_unlocked() {
   if (log_library_log_file && log_library_log_file != stderr) {
     fclose(log_library_log_file);
     log_library_log_file = NULL;
@@ -237,7 +231,7 @@ static inline void log_library_flush_log() {
   LOG_LIBRARY_UNLOCK();
 }
 
-inline void log_library_flush_log_unlocked() {
+static inline void log_library_flush_log_unlocked() {
   FILE *output = log_library_log_file ? log_library_log_file : stderr;
   fflush(output);
   int is_terminal = output == stderr;
@@ -320,6 +314,14 @@ inline void log_library_flush_log_unlocked() {
 #endif
 
 #ifdef __cplusplus
+
+#if __cplusplus < 201103L
+#define SSTR(x) static_cast<std::ostringstream &>(         \
+                  (std::ostringstream() << std::dec << x)) \
+                  .str()
+#else
+#define SSTR(x) std::to_string(x)
+#endif
 
 static inline std::string log_library_form_exception(const char *short_file, int line, const char *LOG_LIBRARY_func_name, const char *fmt, ...) {
   char log_library_time_buffer[LOG_LIBRFARY_TIME_BUFFER_SIZE];
