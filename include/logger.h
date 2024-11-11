@@ -344,20 +344,20 @@ static inline std::string log_library_form_exception(const char *short_file, int
 
 #define EXCEPTION(fmt, ...) (log_library_form_exception(LOG_LIBRARY_SHORT_FILE, LOG_LIBRARY_LINE, LOG_LIBRARY_FUNC_NAME, fmt, ##__VA_ARGS__))
 
-#if __cplusplus >= 201703L
-
-#define LOG_LIBRARY_STD_MAX_ELEMENTS 100
-#include <map>
-#include <ostream>
-#include <type_traits>
-#include <unordered_map>
-
-
-template<typename T, typename = void>
-struct log_library_is_container : std::false_type {};
+#if __cplusplus >= 201103L
 
 template<typename T>
-struct log_library_is_container<T, std::void_t<decltype(std::declval<T>().begin()), decltype(std::declval<T>().end())>> : std::true_type {};
+struct log_library_is_container {
+private:
+  template<typename U>
+  static constexpr bool test(typename U::const_iterator *) { return true; }
+
+  template<typename>
+  static constexpr bool test(...) { return false; }
+
+public:
+  static constexpr bool value = test<T>(nullptr);
+};
 
 template<typename T>
 struct log_library_is_pair : std::false_type {};
@@ -366,70 +366,59 @@ template<typename T, typename U>
 struct log_library_is_pair<std::pair<T, U>> : std::true_type {};
 
 template<typename T>
-struct log_lirabry_is_string : std::false_type {};
+struct log_library_is_string : std::false_type {};
 
 template<>
-struct log_lirabry_is_string<std::string> : std::true_type {};
+struct log_library_is_string<std::string> : std::true_type {};
+
+template<typename T>
+void log_library_print_element_wrapper(const T &element, std::ostringstream &oss);
 
 template<typename T>
 void log_library_print_container(const T &container, std::ostringstream &oss);
 
+void log_library_print_element(const std::string &element, std::ostringstream &oss) {
+  oss << "\"" << element << "\"";
+}
+
 template<typename T>
-void log_library_print_element(const T &element, std::ostringstream &oss) {
-  if constexpr (log_lirabry_is_string<T>::value) {
-    // Print strings on a single line
-    oss << "\"" << element << "\"";
-  } else if constexpr (log_library_is_pair<T>::value) {
-    // Print pairs (key-value format)
-    oss << "\"" << element.first << "\": ";
-    log_library_print_element(element.second, oss);// Print the value part
-  } else if constexpr (log_library_is_container<T>::value) {
-    // Print containers recursively
-    log_library_print_container(element, oss);
-  } else {
-    // Print basic types
-    oss << element;
-  }
+typename std::enable_if<!log_library_is_pair<T>::value && !log_library_is_container<T>::value && !log_library_is_string<T>::value>::type
+log_library_print_element(const T &element, std::ostringstream &oss) {
+  oss << element;
+}
+
+template<typename T>
+typename std::enable_if<log_library_is_pair<T>::value>::type
+log_library_print_element(const T &element, std::ostringstream &oss) {
+  oss << "\"" << element.first << "\": ";
+  log_library_print_element_wrapper(element.second, oss);
+}
+
+template<typename T>
+typename std::enable_if<log_library_is_container<T>::value && !log_library_is_string<T>::value>::type
+log_library_print_element(const T &element, std::ostringstream &oss) {
+  log_library_print_container(element, oss);
+}
+
+template<typename T>
+void log_library_print_element_wrapper(const T &element, std::ostringstream &oss) {
+  log_library_print_element(element, oss);
 }
 
 template<typename T>
 void log_library_print_container(const T &container, std::ostringstream &oss) {
-  oss << "[";
-  bool first = true;
-  for (const auto &element: container) {
-    if (!first) oss << ", ";
-    log_library_print_element(element, oss);
-    first = false;
-  }
-  oss << "]";
-}
-
-template<typename Key, typename Value>
-void log_library_print_container(const std::map<Key, Value> &container, std::ostringstream &oss) {
   oss << "{";
   bool first = true;
   for (const auto &element: container) {
     if (!first) oss << ", ";
-    log_library_print_element(element, oss);
-    first = false;
-  }
-  oss << "}";
-}
-
-template<typename Key, typename Value>
-void log_library_print_container(const std::unordered_map<Key, Value> &container, std::ostringstream &oss) {
-  oss << "{";
-  bool first = true;
-  for (const auto &element: container) {
-    if (!first) oss << ", ";
-    log_library_print_element(element, oss);
+    log_library_print_element_wrapper(element, oss);
     first = false;
   }
   oss << "}";
 }
 
 template<typename T>
-std::string log_lirabry_get_container_string(const T &container) {
+std::string log_library_get_container_string(const T &container) {
   std::ostringstream oss;
   log_library_print_container(container, oss);
   return oss.str();
@@ -442,12 +431,9 @@ static inline std::string log_library_class_string(const T &value) {
   return oss.str();
 }
 
-#define STD_CONTAINER(container) ("[" + std::string(#container) + "] " + log_lirabry_get_container_string(container))
+// Macros for logging standard containers and custom classes
+#define STD_CONTAINER(container) ("[" + std::string(#container) + "] " + log_library_get_container_string(container))
 #define CPP_CLASS(class_name) ("[" + std::string(#class_name) + "] {" + log_library_class_string(class_name) + "}")
-
-// #define STD_CONTAINER(container) (log_library_form_std_container(#container, container))
-// #define STD_CONTAINER_MAX(container, max_elements) (log_library_form_std_container(#container, container, max_elements))
-// #define CPP_CLASS(class_name) ("[" + std::string(#class_name) + "]" + LOG_LIBRARY_CPP_CLASS(class_name))
 
 #endif
 
