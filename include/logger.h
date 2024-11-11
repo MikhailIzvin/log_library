@@ -14,14 +14,6 @@
 #include <pthread.h>
 #endif
 
-#ifdef __cplusplus
-#include <stdexcept>
-#include <string>
-#if __cplusplus < 201103L
-#include <sstream>
-#endif
-#endif
-
 #define LOG_LIBRFARY_TIME_BUFFER_SIZE 30
 #ifdef LOG_LIBRARY_PRETTY_FUNCTION
 #define LOG_LIBRARY_FUNC_NAME __PRETTY_FUNCTION__
@@ -314,6 +306,10 @@ static inline void log_library_flush_log_unlocked() {
 #endif
 
 #ifdef __cplusplus
+#include <sstream>
+#include <stdexcept>
+#include <string>
+
 
 #if __cplusplus < 201103L
 #define SSTR(x) static_cast<std::ostringstream &>(         \
@@ -347,6 +343,53 @@ static inline std::string log_library_form_exception(const char *short_file, int
 }
 
 #define EXCEPTION(fmt, ...) (log_library_form_exception(LOG_LIBRARY_SHORT_FILE, LOG_LIBRARY_LINE, LOG_LIBRARY_FUNC_NAME, fmt, ##__VA_ARGS__))
+
+#if __cplusplus >= 201103L
+
+#define LOG_LIBRARY_STD_MAX_ELEMENTS 100
+
+template<typename T>
+static inline std::string log_library_to_string(const T &value) {
+  std::ostringstream oss;
+  oss << value;
+  return oss.str();
+}
+
+template<typename T>
+static inline bool log_library_is_fundamental(const T &value) {
+  return std::is_fundamental<T>::value;
+}
+
+#define LOG_LIBRARY_CPP_CLASS(class_name) ("\n{\n  " + log_library_to_string(class_name) + "\n}")
+
+template<typename T>
+static inline std::string log_library_form_std_container(const char *name, const T &container, size_t max_elements = LOG_LIBRARY_STD_MAX_ELEMENTS) {
+  std::string message = "[";
+  message += name;
+  message += "] = {";
+  size_t count = 0;
+  for (auto it = container.begin(); it != container.end(); ++it) {
+    if (!log_library_is_fundamental(*it)) {
+      message += LOG_LIBRARY_CPP_CLASS(*it);
+    } else {
+      message += log_library_to_string(*it);
+    }
+    if (std::next(it) != container.end())
+      message += ", ";
+    if (max_elements != -1 && ++count >= max_elements) {
+      message += "...";
+      break;
+    }
+  }
+  message += "}";
+  return message;
+}
+
+#define STD_CONTAINER(container) (log_library_form_std_container(#container, container))
+#define STD_CONTAINER_MAX(container, max_elements) (log_library_form_std_container(#container, container, max_elements))
+#define CPP_CLASS(class_name) ("[" + std::string(#class_name) + "]" + LOG_LIBRARY_CPP_CLASS(class_name))
+
+#endif
 
 #endif
 
