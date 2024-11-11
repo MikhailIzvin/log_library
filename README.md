@@ -110,6 +110,18 @@ Example
 LOGERROR("%s", e.what());
 ```
 
+### C++ 11
+
+You can print standart library containers and classes if you are using c++11 and higher
+
+```cpp
+std::map<std::string, std::vector<std::string>> map_of_string_vector_string = {
+    {"one", {"one", "two", "three"}},
+    {"two", {"four", "five", "six"}}};
+
+LOGDEBUG("%s", STD_CONTAINER(map_of_string_vector_string).c_str());
+```
+
 ### Examples
 
 You can found examples in exampels directory
