@@ -62,14 +62,11 @@ log_library_set_max_file_size_callback(log_library_callback callback, void *user
 
 ### Important if you are using log in file
 
-Before use any log library functions in callback you should
-release mutex via `LOG_LIBRARY_UNLOCK()`
+In callback you should use unlocked version of functionss
 
 ```cpp
 void maxFileSizeCallback(void *userdata) {
-  // You should unlock before using library functions
-  LOG_LIBRARY_UNLOCK();
-  log_library_set_log_file(logFile);
+  log_library_set_log_file_unlocked(logFile);
 }
 ```
 

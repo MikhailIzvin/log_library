@@ -18,9 +18,7 @@ void maxFileSizeCallback(void *userdata) {
   logFileCounter++;
   fs::path logFile = *log_dir / fs::path("log." + std::to_string(logFileCounter) + ".txt");
 
-  // You should unlock before using library functions
-  LOG_LIBRARY_UNLOCK();
-  log_library_set_log_file(logFile.c_str());
+  log_library_set_log_file_unlocked(logFile.c_str());
 }
 
 int main() {
