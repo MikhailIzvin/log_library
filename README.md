@@ -27,6 +27,40 @@ cmake -B build
 cmake --build build
 ```
 
+## Use FetchContent
+
+```cmake
+cmake_minimum_required(VERSION 3.7)
+project("test" VERSION 1.0.0)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_C_STANDARD 11)
+
+include(FetchContent)
+
+FetchContent_Declare(
+  log_library
+  GIT_REPOSITORY https://github.com/MikhailIzvin/log_library.git
+  GIT_TAG main
+)
+
+FetchContent_MakeAvailable(log_library)
+
+add_executable(
+    ${PROJECT_NAME}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cc
+)
+
+if(log_library_SOURCE_DIR)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${log_library_SOURCE_DIR}/include)
+
+    # Enable pretty function names in log output
+    add_compile_definitions(LOG_LIBRARY_PRETTY_FUNCTION)
+
+    # Set log level to ERROR
+    add_compile_definitions(LOG_LIBRARY_LOG_LEVEL_ERROR)
+endif()
+```
+
 ## Usage
 
 ### Including the Logger
