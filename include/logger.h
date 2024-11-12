@@ -376,41 +376,41 @@ template<>
 struct log_library_is_string<std::string> : std::true_type {};
 
 template<typename T>
-void log_library_print_element_wrapper(const T &element, std::ostringstream &oss);
+static inline void log_library_print_element_wrapper(const T &element, std::ostringstream &oss);
 
 template<typename T>
-void log_library_print_container(const T &container, std::ostringstream &oss);
+static inline void log_library_print_container(const T &container, std::ostringstream &oss);
 
-void log_library_print_element(const std::string &element, std::ostringstream &oss) {
+static inline void log_library_print_element(const std::string &element, std::ostringstream &oss) {
   oss << "\"" << element << "\"";
 }
 
 template<typename T>
-typename std::enable_if<!log_library_is_pair<T>::value && !log_library_is_container<T>::value && !log_library_is_string<T>::value>::type
+static inline typename std::enable_if<!log_library_is_pair<T>::value && !log_library_is_container<T>::value && !log_library_is_string<T>::value>::type
 log_library_print_element(const T &element, std::ostringstream &oss) {
   oss << element;
 }
 
 template<typename T>
-typename std::enable_if<log_library_is_pair<T>::value>::type
+static inline typename std::enable_if<log_library_is_pair<T>::value>::type
 log_library_print_element(const T &element, std::ostringstream &oss) {
   oss << "\"" << element.first << "\": ";
   log_library_print_element_wrapper(element.second, oss);
 }
 
 template<typename T>
-typename std::enable_if<log_library_is_container<T>::value && !log_library_is_string<T>::value>::type
+static inline typename std::enable_if<log_library_is_container<T>::value && !log_library_is_string<T>::value>::type
 log_library_print_element(const T &element, std::ostringstream &oss) {
   log_library_print_container(element, oss);
 }
 
 template<typename T>
-void log_library_print_element_wrapper(const T &element, std::ostringstream &oss) {
+static inline void log_library_print_element_wrapper(const T &element, std::ostringstream &oss) {
   log_library_print_element(element, oss);
 }
 
 template<typename T>
-void log_library_print_container(const T &container, std::ostringstream &oss) {
+static inline void log_library_print_container(const T &container, std::ostringstream &oss) {
   oss << "{";
   bool first = true;
   for (const auto &element: container) {
@@ -422,7 +422,7 @@ void log_library_print_container(const T &container, std::ostringstream &oss) {
 }
 
 template<typename T>
-std::string log_library_get_container_string(const T &container) {
+static inline std::string log_library_get_container_string(const T &container) {
   std::ostringstream oss;
   log_library_print_container(container, oss);
   return oss.str();
