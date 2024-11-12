@@ -319,9 +319,7 @@ static inline void log_library_flush_log_unlocked() {
 
 #if (defined(_MSC_VER) && _MSC_VER < 1900) || (!defined(_MSC_VER) && __cplusplus < 201103L)
 #include <sstream>
-#define SSTR(x) static_cast<std::ostringstream &>(         \
-                  (std::ostringstream() << std::dec << x)) \
-                  .str()
+#define SSTR(x) static_cast<std::ostringstream &>(std::ostringstream() << x).str()
 #else
 #include <string>
 #define SSTR(x) std::to_string(x)
