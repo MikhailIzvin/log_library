@@ -15,6 +15,7 @@
 #endif
 
 #define LOG_LIBRFARY_TIME_BUFFER_SIZE 30
+#define LOG_LIBRFARY_UINT_BUFFER_SIZE 12
 #ifdef LOG_LIBRARY_PRETTY_FUNCTION
 #define LOG_LIBRARY_FUNC_NAME __PRETTY_FUNCTION__
 #else
@@ -316,17 +317,11 @@ static inline void log_library_flush_log_unlocked() {
 #include <stdexcept>
 #include <string>
 
+static inline const void SSTR(char *buffer, int size, unsigned int x) {
+  snprintf(buffer, size, "%u", x);
+}
 
-#if (defined(_MSC_VER) && _MSC_VER < 1900) || (!defined(_MSC_VER) && __cplusplus < 201103L)
-#include <sstream>
-#define SSTR(x) static_cast<std::ostringstream &>(std::ostringstream() << x).str()
-#else
-#include <string>
-#define SSTR(x) std::to_string(x)
-#endif
-
-
-static inline std::string log_library_form_exception(const char *short_file, int line, const char *LOG_LIBRARY_func_name, const char *fmt, ...) {
+static inline std::string log_library_form_exception(const char *short_file, unsigned int line, const char *LOG_LIBRARY_func_name, const char *fmt, ...) {
   char log_library_time_buffer[LOG_LIBRFARY_TIME_BUFFER_SIZE];
   log_library_format_current_time(log_library_time_buffer, LOG_LIBRFARY_TIME_BUFFER_SIZE);
   std::string message = "[EXCEPTION]";
@@ -337,7 +332,9 @@ static inline std::string log_library_form_exception(const char *short_file, int
   message += "[";
   message += short_file;
   message += ":";
-  message += SSTR(line);
+  char log_library_uint_buffer[LOG_LIBRFARY_UINT_BUFFER_SIZE];
+  SSTR(log_library_uint_buffer, LOG_LIBRFARY_UINT_BUFFER_SIZE, line);
+  message += log_library_uint_buffer;
   message += "]";
   message += " ";
   message += "[";
