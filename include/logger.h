@@ -38,8 +38,14 @@
 
 // Define a mutex for thread safety
 #if defined(_WIN32) || defined(_WIN64)
-static HANDLE log_library_mutex = CreateMutex(NULL, FALSE, NULL);
-#define LOG_LIBRARY_LOCK() WaitForSingleObject(log_library_mutex, INFINITE)
+static HANDLE log_library_mutex = NULL;
+#define LOG_LIBRARY_LOCK()                                \
+  do {                                                    \
+    if (!log_library_mutex) {                             \
+      log_library_mutex = CreateMutex(NULL, FALSE, NULL); \
+    }                                                     \
+    WaitForSingleObject(log_library_mutex, INFINITE);     \
+  } while (0)
 #define LOG_LIBRARY_UNLOCK() ReleaseMutex(log_library_mutex)
 #define LOG_LIBRARY_SHORT_FILE (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 #else
@@ -311,13 +317,16 @@ static inline void log_library_flush_log_unlocked() {
 #include <string>
 
 
-#if __cplusplus < 201103L
+#if (defined(_MSC_VER) && _MSC_VER < 1900) || (!defined(_MSC_VER) && __cplusplus < 201103L)
+#include <sstream>
 #define SSTR(x) static_cast<std::ostringstream &>(         \
                   (std::ostringstream() << std::dec << x)) \
                   .str()
 #else
+#include <string>
 #define SSTR(x) std::to_string(x)
 #endif
+
 
 static inline std::string log_library_form_exception(const char *short_file, int line, const char *LOG_LIBRARY_func_name, const char *fmt, ...) {
   char log_library_time_buffer[LOG_LIBRFARY_TIME_BUFFER_SIZE];
@@ -344,7 +353,7 @@ static inline std::string log_library_form_exception(const char *short_file, int
 
 #define EXCEPTION(fmt, ...) (log_library_form_exception(LOG_LIBRARY_SHORT_FILE, LOG_LIBRARY_LINE, LOG_LIBRARY_FUNC_NAME, fmt, ##__VA_ARGS__))
 
-#if __cplusplus >= 201103L
+#if (defined(_MSC_VER) && _MSC_VER >= 1900) || (defined(__cplusplus) && __cplusplus >= 201103L)
 
 template<typename T>
 struct log_library_is_container {
@@ -437,6 +446,6 @@ static inline std::string log_library_class_string(const T &value) {
 
 #endif
 
-#endif
+#endif// __cplusplus
 
 #endif// LOGGER_H

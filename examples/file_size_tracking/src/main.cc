@@ -4,7 +4,6 @@
 #include <filesystem>
 #include <iostream>
 #include <thread>
-#include <unistd.h>
 #include <vector>
 
 #define MAX_THREADS 10
@@ -18,11 +17,11 @@ void maxFileSizeCallback(void *userdata) {
   logFileCounter++;
   fs::path logFile = *log_dir / fs::path("log." + std::to_string(logFileCounter) + ".txt");
 
-  log_library_set_log_file_unlocked(logFile.c_str());
+  log_library_set_log_file(std::string(logFile.u8string()).c_str());
 }
 
 int main() {
-  fs::path cmake_log_dir(LOG_DIR);
+  fs::path cmake_log_dir(fs::absolute(LOG_DIR));
   fs::path log_dir = cmake_log_dir / fs::path("log");
   if (!fs::exists(log_dir)) {
     fs::create_directory(log_dir);
@@ -30,7 +29,7 @@ int main() {
 
   fs::path logFile = log_dir / fs::path("log." + std::to_string(logFileCounter) + ".txt");
 
-  log_library_set_log_file(logFile.c_str());
+  log_library_set_log_file(std::string(logFile.u8string()).c_str());
   log_library_set_log_max_size(MAX_LOG_SIZE);
   log_library_set_max_file_size_callback(maxFileSizeCallback, (void *) &log_dir);
 
