@@ -18,6 +18,17 @@ This is a simple header only, thread-safe logging library for C and C++ projects
 - C++98 or higher for C++ projects
 - C90 or higher for C projects
 
+## Platform Support
+
+| Platforms | Arch   | Support |
+|-----------|--------|---------|
+| Windows   | x86    | ✔️       |
+| Linux     | x86    | ✔️       |
+| Linux     | arm-v7 | ✔️       |
+| Linux     | arm64  | ✔️       |
+| Mac       | x86    | ❌      |
+| Mac       | arm    | ❌      |
+
 ## Installation
 
 Choose avaliable options in CMakeLists.txt
