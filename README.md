@@ -177,6 +177,26 @@ LOGDEBUG("%s", STD_CONTAINER(map_of_string_vector_string).c_str());
 
 You can found examples in exampels directory
 
+Print log message with default options. Without disabled colors, output in console. In file always without colors
+
+`ERROR` - red 
+
+`DEBUG` - blue
+
+`WARN` - yellow
+
+`INFO` - green
+
+```sh
+year-month-day hours:minutes:seconds.nanoseconds [ERROR|WARN|INFO|DEBUG] [file:line] [function] message
+```
+
+Exception
+
+```sh
+[EXCEPTION] year-month-day hours:minutes:seconds.nanoseconds [file:line] [function] message
+```
+
 ## Configuration Options
 
 You can configure the logger using CMake options:
