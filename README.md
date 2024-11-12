@@ -40,8 +40,8 @@ This is a simple header only, thread-safe logging library for C and C++ projects
 | Linux     | x86    | ✔️       |
 | Linux     | arm-v7 | ✔️       |
 | Linux     | arm64  | ✔️       |
-| Mac       | x86    | ❌      |
-| Mac       | arm    | ❌      |
+| Mac       | x86    | ✔️       |
+| Mac       | arm    | ✔️       |
 
 ## Static build
 
