@@ -51,7 +51,7 @@ This is a simple header only, thread-safe logging library for C and C++ projects
 
 ## Installation
 
-Choose avaliable options in CMakeLists.txt
+Choose avaliable options in CMakeLists.txt for building examples
 
 ```sh
 cmake -B build
@@ -90,6 +90,32 @@ if(log_library_SOURCE_DIR)
     # Set log level to ERROR
     add_compile_definitions(LOG_LIBRARY_LOG_LEVEL_ERROR)
 endif()
+```
+
+## Using GIT submodules
+
+From project directory
+
+```sh
+git submodule add https://github.com/MikhailIzvin/log_library.git
+```
+
+For current project
+
+```cmake
+target_include_directories(
+    ${PROJECT_NAME}
+    PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/log_library/include
+)
+```
+
+For all inner projects
+
+```cmake
+include_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/log_library/include
+)
 ```
 
 ## Usage
