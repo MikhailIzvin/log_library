@@ -2,6 +2,20 @@
 
 This is a simple header only, thread-safe logging library for C and C++ projects. It supports multiple log levels, colored output, and logging to a file.
 
+## Table of Contents
+- [Features](#Features)
+- [Requirements](#Requirements)
+- [Platform Support](#platform-support)
+- [Static build](#static-build)
+- [Installation](#installation)
+- [Usage](#usage)
+  - [Including the Logger](#including-the-logger)
+  - [Setting the Log File](#setting-the-log-file)
+  - [Important if you are using log in file](#important-if-you-are-using-log-in-file)
+- [Examples](#examples)
+- [Configuration Options](#configuration-options)
+
+
 ## Features
 
 - Thread-safe logging
