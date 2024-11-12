@@ -29,6 +29,12 @@ This is a simple header only, thread-safe logging library for C and C++ projects
 | Mac       | x86    | ❌      |
 | Mac       | arm    | ❌      |
 
+## Static build
+
+| Platforms | Arch   | Support |
+|-----------|--------|---------|
+| Android 11| arm-v7 | ✔️       |
+
 ## Installation
 
 Choose avaliable options in CMakeLists.txt
