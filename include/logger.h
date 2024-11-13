@@ -14,6 +14,14 @@
 #include <pthread.h>
 #endif
 
+#ifdef LOG_LIBRARY_ENABLE_SEMAPHORE
+#include <fcntl.h>
+#include <semaphore.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#endif
+
 #define LOG_LIBRFARY_TIME_BUFFER_SIZE 30
 #define LOG_LIBRFARY_UINT_BUFFER_SIZE 12
 #ifdef LOG_LIBRARY_PRETTY_FUNCTION
@@ -37,6 +45,94 @@
 #define COLOR_RED ""
 #endif
 
+// Static log file pointer, defaults to stderr
+static FILE *log_library_log_file = NULL;
+static unsigned int log_library_log_size = 0;
+static unsigned int log_library_log_max_size = 0;
+
+static int log_library_std_output_redirecred = 0;
+
+typedef void (*log_library_callback)(void *userdata);
+static log_library_callback log_library_max_file_size_callback = NULL;
+static void *log_library_userdata = NULL;
+
+
+#if defined(_WIN32) || defined(_WIN64)
+#define LOG_LIBRARY_SHORT_FILE (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
+#else
+#define LOG_LIBRARY_SHORT_FILE (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+#endif
+
+#ifdef LOG_LIBRARY_ENABLE_SEMAPHORE
+// #undef COLOR_RESET
+// #define COLOR_RESET ""
+// #undef COLOR_BLUE
+// #define COLOR_BLUE ""
+// #undef COLOR_GREEN
+// #define COLOR_GREEN ""
+// #undef COLOR_YELLOW
+// #define COLOR_YELLOW ""
+// #undef COLOR_RED
+// #define COLOR_RED ""
+
+#define LOG_LIBRARY_CONCAT_SEMAPHORE_PATH(a, b) a b
+
+#if defined(_WIN32) || defined(_WIN64)
+#define LOG_LIRABRY_SEMAPHORE_PREFIX "Global\\\\"
+#else
+#define LOG_LIRABRY_SEMAPHORE_PREFIX "/"
+#endif
+
+#ifdef LOG_LIRABRY_SEMAPHORE_NAME
+#define LOG_LIBRARY_SEMAPHORE_NAME LOG_LIBRARY_CONCAT_SEMAPHORE_PATH(LOG_LIRABRY_SEMAPHORE_PREFIX, LOG_LIRABRY_SEMAPHORE_NAME)
+#else
+#define LOG_LIBRARY_SEMAPHORE_NAME LOG_LIBRARY_CONCAT_SEMAPHORE_PATH(LOG_LIRABRY_SEMAPHORE_PREFIX, "LOG_LIBRARY_SEMAPHORE")
+#endif
+#if defined(_WIN32) || defined(_WIN64)
+
+static HANDLE log_library_semaphore = NULL;
+
+static inline void LOG_LIBRARY_LOCK() {
+  if (!log_library_semaphore) {
+    log_library_semaphore = OpenSemaphore(SEMAPHORE_ALL_ACCESS, FALSE, LOG_LIRABRY_SEMAPHORE_NAME);
+    if (!log_library_semaphore) {
+      log_library_semaphore = CreateSemaphore(NULL, 1, 1, LOG_LIRABRY_SEMAPHORE_NAME);
+      if (!log_library_semaphore) {
+        perror("Failed to create LOG_LIRABRY_SEMAPHORE_NAME");
+      }
+    }
+  }
+  WaitForSingleObject(log_library_semaphore, INFINITE);
+}
+
+static inline void LOG_LIBRARY_UNLOCK() {
+  ReleaseSemaphore(log_library_semaphore, 1, NULL);
+}
+#else
+
+static sem_t *log_library_semaphore = SEM_FAILED;
+
+static inline void LOG_LIBRARY_LOCK() {
+  if (log_library_semaphore == SEM_FAILED) {
+    log_library_semaphore = sem_open(LOG_LIRABRY_SEMAPHORE_NAME, O_CREAT, 0644, 1);
+    if (log_library_semaphore == SEM_FAILED) {
+      perror("Failed to create LOG_LIRABRY_SEMAPHORE_NAME");
+    }
+  }
+  if (sem_wait(log_library_semaphore) == -1) {
+    perror("Failed to lock LOG_LIRABRY_SEMAPHORE_NAME");
+  }
+}
+
+static inline void LOG_LIBRARY_UNLOCK() {
+  if (sem_post(log_library_semaphore) == -1) {
+    perror("Failed to unlock LOG_LIRABRY_SEMAPHORE_NAME");
+  }
+}
+#endif
+
+#else
+
 // Define a mutex for thread safety
 #if defined(_WIN32) || defined(_WIN64)
 static HANDLE log_library_mutex = NULL;
@@ -48,23 +144,13 @@ static HANDLE log_library_mutex = NULL;
     WaitForSingleObject(log_library_mutex, INFINITE);     \
   } while (0)
 #define LOG_LIBRARY_UNLOCK() ReleaseMutex(log_library_mutex)
-#define LOG_LIBRARY_SHORT_FILE (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 #else
 static pthread_mutex_t log_library_mutex = PTHREAD_MUTEX_INITIALIZER;
 #define LOG_LIBRARY_LOCK() pthread_mutex_lock(&log_library_mutex)
 #define LOG_LIBRARY_UNLOCK() pthread_mutex_unlock(&log_library_mutex)
-#define LOG_LIBRARY_SHORT_FILE (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #endif
 
-
-// Static log file pointer, defaults to stderr
-static FILE *log_library_log_file = NULL;
-static unsigned int log_library_log_size = 0;
-static unsigned int log_library_log_max_size = 0;
-
-typedef void (*log_library_callback)(void *userdata);
-static log_library_callback log_library_max_file_size_callback = NULL;
-static void *log_library_userdata = NULL;
+#endif
 
 // Safe functions
 static inline void log_library_set_log_file(const char *file_path);
@@ -94,11 +180,25 @@ static inline void log_library_set_log_file(const char *file_path) {
 }
 
 static inline void log_library_set_log_file_unlocked(const char *file_path) {
+#ifdef LOG_LIBRARY_ENABLE_SEMAPHORE
+  if (log_library_std_output_redirecred) {
+    fclose(log_library_log_file);
+    log_library_log_size = 0;
+  } else if (log_library_log_file && log_library_log_file != stderr) {
+    fclose(log_library_log_file);
+    log_library_log_size = 0;
+  }
+  log_library_log_file = freopen(file_path, "a", stderr);
+  log_library_std_output_redirecred = 1;
+#else
   if (log_library_log_file && log_library_log_file != stderr) {
     fclose(log_library_log_file);
     log_library_log_size = 0;
   }
   log_library_log_file = fopen(file_path, "a");
+  log_library_std_output_redirecred = 0;
+#endif
+
   if (!log_library_log_file) {
     log_library_log_file = stderr;
   } else {
@@ -201,6 +301,10 @@ static inline void log_library_log_message(const char *color, const char *fmt, .
 
   FILE *output = log_library_log_file ? log_library_log_file : stderr;
   int is_terminal = output == stderr;
+
+  if (log_library_std_output_redirecred) {
+    is_terminal = 0;
+  }
 
   if (is_terminal) {
     fprintf(output, "%s", color);
