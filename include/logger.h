@@ -15,11 +15,13 @@
 #endif
 
 #ifdef LOG_LIBRARY_ENABLE_SEMAPHORE
+#if not defined(_WIN32) && not defined(_WIN64)
 #include <fcntl.h>
 #include <semaphore.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#endif
 #endif
 
 #define LOG_LIBRFARY_TIME_BUFFER_SIZE 30
@@ -50,8 +52,6 @@ static FILE *log_library_log_file = NULL;
 static unsigned int log_library_log_size = 0;
 static unsigned int log_library_log_max_size = 0;
 
-static int log_library_std_output_redirecred = 0;
-
 typedef void (*log_library_callback)(void *userdata);
 static log_library_callback log_library_max_file_size_callback = NULL;
 static void *log_library_userdata = NULL;
@@ -64,16 +64,6 @@ static void *log_library_userdata = NULL;
 #endif
 
 #ifdef LOG_LIBRARY_ENABLE_SEMAPHORE
-// #undef COLOR_RESET
-// #define COLOR_RESET ""
-// #undef COLOR_BLUE
-// #define COLOR_BLUE ""
-// #undef COLOR_GREEN
-// #define COLOR_GREEN ""
-// #undef COLOR_YELLOW
-// #define COLOR_YELLOW ""
-// #undef COLOR_RED
-// #define COLOR_RED ""
 
 #define LOG_LIBRARY_CONCAT_SEMAPHORE_PATH(a, b) a b
 
@@ -180,24 +170,12 @@ static inline void log_library_set_log_file(const char *file_path) {
 }
 
 static inline void log_library_set_log_file_unlocked(const char *file_path) {
-#ifdef LOG_LIBRARY_ENABLE_SEMAPHORE
-  if (log_library_std_output_redirecred) {
-    fclose(log_library_log_file);
-    log_library_log_size = 0;
-  } else if (log_library_log_file && log_library_log_file != stderr) {
-    fclose(log_library_log_file);
-    log_library_log_size = 0;
-  }
-  log_library_log_file = freopen(file_path, "a", stderr);
-  log_library_std_output_redirecred = 1;
-#else
+
   if (log_library_log_file && log_library_log_file != stderr) {
     fclose(log_library_log_file);
     log_library_log_size = 0;
   }
   log_library_log_file = fopen(file_path, "a");
-  log_library_std_output_redirecred = 0;
-#endif
 
   if (!log_library_log_file) {
     log_library_log_file = stderr;
@@ -301,10 +279,6 @@ static inline void log_library_log_message(const char *color, const char *fmt, .
 
   FILE *output = log_library_log_file ? log_library_log_file : stderr;
   int is_terminal = output == stderr;
-
-  if (log_library_std_output_redirecred) {
-    is_terminal = 0;
-  }
 
   if (is_terminal) {
     fprintf(output, "%s", color);
