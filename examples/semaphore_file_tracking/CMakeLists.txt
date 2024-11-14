@@ -5,7 +5,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_compile_definitions(LOG_LIBRARY_ENABLE_SEMAPHORE)
-add_definitions(-DLOG_LIRABRY_SEMAPHORE_NAME=\"semaphore_file_tracking\")
+add_definitions(-DLOG_LIBRABRY_SEMAPHORE_NAME=\"semaphore_file_tracking\")
 
 add_executable(
     ${PROJECT_NAME}

@@ -26,6 +26,9 @@
 
 #define LOG_LIBRFARY_TIME_BUFFER_SIZE 30
 #define LOG_LIBRFARY_UINT_BUFFER_SIZE 12
+
+#define LOG_LIBRARY_CONCAT_PATH(a, b) a b
+
 #ifdef LOG_LIBRARY_PRETTY_FUNCTION
 #define LOG_LIBRARY_FUNC_NAME __PRETTY_FUNCTION__
 #else
@@ -65,18 +68,16 @@ static void *log_library_userdata = NULL;
 
 #ifdef LOG_LIBRARY_ENABLE_SEMAPHORE
 
-#define LOG_LIBRARY_CONCAT_PATH(a, b) a b
-
 #if defined(_WIN32) || defined(_WIN64)
 #define LOG_LIRABRY_SEMAPHORE_PREFIX "Global\\\\"
 #else
 #define LOG_LIRABRY_SEMAPHORE_PREFIX "/"
 #endif
 
-#ifdef LOG_LIRABRY_SEMAPHORE_NAME
-#define LOG_LIBRARY_SEMAPHORE_NAME LOG_LIBRARY_CONCAT_PATH(LOG_LIRABRY_SEMAPHORE_PREFIX, LOG_LIRABRY_SEMAPHORE_NAME)
+#ifdef LOG_LIBRABRY_SEMAPHORE_NAME
+#define LOG_LIBRARY_SEMAPHORE LOG_LIBRARY_CONCAT_PATH(LOG_LIRABRY_SEMAPHORE_PREFIX, LOG_LIBRABRY_SEMAPHORE_NAME)
 #else
-#define LOG_LIBRARY_SEMAPHORE_NAME LOG_LIBRARY_CONCAT_PATH(LOG_LIRABRY_SEMAPHORE_PREFIX, "LOG_LIBRARY_SEMAPHORE")
+#define LOG_LIBRARY_SEMAPHORE LOG_LIBRARY_CONCAT_PATH(LOG_LIRABRY_SEMAPHORE_PREFIX, "LOG_LIBRARY_SEMAPHORE")
 #endif
 #if defined(_WIN32) || defined(_WIN64)
 
@@ -84,11 +85,11 @@ static HANDLE log_library_semaphore = NULL;
 
 static inline void LOG_LIBRARY_LOCK() {
   if (!log_library_semaphore) {
-    log_library_semaphore = OpenSemaphore(SEMAPHORE_ALL_ACCESS, FALSE, LOG_LIRABRY_SEMAPHORE_NAME);
+    log_library_semaphore = OpenSemaphore(SEMAPHORE_ALL_ACCESS, FALSE, LOG_LIBRARY_SEMAPHORE);
     if (!log_library_semaphore) {
-      log_library_semaphore = CreateSemaphore(NULL, 1, 1, LOG_LIRABRY_SEMAPHORE_NAME);
+      log_library_semaphore = CreateSemaphore(NULL, 1, 1, LOG_LIBRARY_SEMAPHORE);
       if (!log_library_semaphore) {
-        perror("Failed to create LOG_LIRABRY_SEMAPHORE_NAME");
+        perror("Failed to create LOG_LIBRARY_SEMAPHORE");
       }
     }
   }
@@ -104,19 +105,19 @@ static sem_t *log_library_semaphore = SEM_FAILED;
 
 static inline void LOG_LIBRARY_LOCK() {
   if (log_library_semaphore == SEM_FAILED) {
-    log_library_semaphore = sem_open(LOG_LIRABRY_SEMAPHORE_NAME, O_CREAT, 0644, 1);
+    log_library_semaphore = sem_open(LOG_LIBRARY_SEMAPHORE, O_CREAT, 0644, 1);
     if (log_library_semaphore == SEM_FAILED) {
-      perror("Failed to create LOG_LIRABRY_SEMAPHORE_NAME");
+      perror("Failed to create LOG_LIBRARY_SEMAPHORE");
     }
   }
   if (sem_wait(log_library_semaphore) == -1) {
-    perror("Failed to lock LOG_LIRABRY_SEMAPHORE_NAME");
+    perror("Failed to lock LOG_LIBRARY_SEMAPHORE");
   }
 }
 
 static inline void LOG_LIBRARY_UNLOCK() {
   if (sem_post(log_library_semaphore) == -1) {
-    perror("Failed to unlock LOG_LIRABRY_SEMAPHORE_NAME");
+    perror("Failed to unlock LOG_LIBRARY_SEMAPHORE");
   }
 }
 #endif
